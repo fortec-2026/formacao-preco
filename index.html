@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Formação de Preço de Venda</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: bancada de trabalho em duas colunas — dados da empresa e das compras à esquerda, demonstrativo fixo à direita; empilha no celular. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --ink:#15201C; --muted:#5A6963; --line:#D3DCD7;
+  --accent:#0B6B55; --accent-soft:#DCEDE6; --on-accent:#FFFFFF; --warn:#A8480F; --warn-soft:#FBE9DC;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1513; --surface:#171F1C; --ink:#E5ECE8; --muted:#93A29B; --line:#2B3632;
+    --accent:#56C7A5; --accent-soft:#19342B; --on-accent:#0A1512; --warn:#F0A372; --warn-soft:#3A2416; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1513; --surface:#171F1C; --ink:#E5ECE8; --muted:#93A29B; --line:#2B3632;
+  --accent:#56C7A5; --accent-soft:#19342B; --on-accent:#0A1512; --warn:#F0A372; --warn-soft:#3A2416; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:24px}
+header{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:6px 0 0;color:var(--muted);max-width:60ch}
+h2{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:3px;gap:3px}
+.seg button{font:500 14px var(--body);border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:24px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:12.5px;font-weight:500;color:var(--muted)}
+.field.wide{grid-column:1/-1}
+input,select{font:500 15px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0}
+input.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.key{border-color:var(--accent);background:var(--accent-soft)}
+.forn{border-top:1px solid var(--line);padding-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end}
+.forn:first-of-type{border-top:0;padding-top:0}
+.btn{font:500 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;border-radius:7px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.ghost{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+@media (max-width:900px){.result{position:static}}
+.verdict{background:var(--accent-soft);border-radius:8px;padding:16px 18px}
+.verdict .big{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.4vw,30px);line-height:1.15;margin:0;text-wrap:balance}
+.verdict .big b{font-family:var(--mono);font-weight:600;color:var(--accent);white-space:nowrap}
+.verdict p{margin:6px 0 0;color:var(--ink)}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:14px 16px;font-weight:500}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:170px;color:var(--ink)}
+thead th{font:600 14px var(--display);vertical-align:bottom}
+td{font-family:var(--mono);font-size:14px}
+td:first-child{font-family:var(--body);font-size:14px}
+tr.strong td{font-weight:600}
+tr.gap td{border-bottom:0;padding:4px}
+tr.sub td:first-child{color:var(--muted)}
+.best{background:var(--accent-soft)}
+.pill{display:inline-block;font:600 10.5px var(--body);letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:var(--on-accent);border-radius:99px;padding:2px 8px;margin-bottom:4px}
+.neg{color:var(--warn)}
+code{font-family:var(--mono);font-size:13px}
+footer{color:var(--muted);font-size:13px;max-width:80ch}
+.gate{min-height:80vh;display:flex;align-items:center;justify-content:center;padding-inline:16px}
+.gate form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
+.gate h1{font-size:24px}
+.gate .erro{color:var(--warn);font-size:13.5px;margin:0;min-height:1.2em}
+.gate button{font:600 15px var(--body);background:var(--accent);color:var(--on-accent);border:0;border-radius:7px;padding:10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <form id="gate-form" autocomplete="off">
+    <h1>Formação de Preço de Venda</h1>
+    <div class="field"><label for="senha">Senha de acesso</label><input id="senha" type="password" autocomplete="current-password"></div>
+    <p class="erro" id="gate-erro" aria-live="polite"></p>
+    <button type="submit">Entrar</button>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>Formação de Preço de Venda</h1>
+      <p class="lede">Informe os tributos da empresa e as ofertas de compra. O preço sai calculado para cada fornecedor, já descontando o crédito de ICMS.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Modo de cálculo">
+      <button type="button" id="modo-formar" data-modo="formar">Formar o preço</button>
+      <button type="button" id="modo-testar" data-modo="testar">Testar um preço</button>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="stack">
+      <section class="panel">
+        <h2>Produto e meta</h2>
+        <div class="grid">
+          <div class="field wide"><label for="produto">Produto</label><input id="produto" data-k="produto" type="text" autocomplete="off"></div>
+          <div class="field" id="box-margem"><label for="margem">Margem bruta desejada (%)</label><input id="margem" class="num key" data-k="margem" data-t="pct" inputmode="decimal"></div>
+          <div class="field" id="box-preco"><label for="preco">Preço de venda (R$)</label><input id="preco" class="num key" data-k="preco" data-t="money" inputmode="decimal"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Tributos e despesas da empresa</h2>
+        <div class="grid">
+          <div class="field"><label for="uf">Estado da empresa</label><select id="uf"></select></div>
+          <div class="field"><label for="regime">Regime tributário</label>
+            <select id="regime">
+              <option value="icms">Somente ICMS (como na sua tabela)</option>
+              <option value="presumido">Lucro Presumido</option>
+              <option value="real">Lucro Real</option>
+              <option value="simples">Simples Nacional</option>
+            </select></div>
+          <div class="field wide"><label for="cenario">Reforma tributária (CBS e IBS)</label>
+            <select id="cenario">
+              <option value="2026">2026: ano de teste (CBS 0,9% + IBS 0,1%)</option>
+              <option value="2027">2027–2028: CBS cheia, sem PIS/COFINS</option>
+              <option value="2033">2033: CBS e IBS plenos, sem ICMS</option>
+              <option value="nao">Não considerar CBS e IBS</option>
+            </select></div>
+          <div class="field"><label for="cbs">CBS na venda (%)</label><input id="cbs" class="num" data-k="cbs" data-t="pct" inputmode="decimal"></div>
+          <div class="field"><label for="ibs">IBS na venda (%)</label><input id="ibs" class="num" data-k="ibs" data-t="pct" inputmode="decimal"></div>
+          <div class="field"><label for="icms">ICMS na venda (%)</label><input id="icms" class="num" data-k="icms" data-t="pct" inputmode="decimal"></div>
+          <div class="field"><label for="pis" id="lbl-pis">PIS/COFINS na venda (%)</label><input id="pis" class="num" data-k="pis" data-t="pct" inputmode="decimal"></div>
+          <div class="field"><label for="pisCred">Crédito de PIS/COFINS na compra (%)</label><input id="pisCred" class="num" data-k="pisCred" data-t="pct" inputmode="decimal"></div>
+          <div class="field"><label for="desp">Despesas variáveis de venda (%)</label><input id="desp" class="num" data-k="desp" data-t="pct" inputmode="decimal"></div>
+        </div>
+        <p class="hint" id="regime-nota"></p>
+      </section>
+
+      <section class="panel">
+        <div class="row"><h2>Ofertas de compra</h2><button type="button" class="btn" id="add">Adicionar fornecedor</button></div>
+        <div id="forns"></div>
+        <div class="row"><p class="hint">O crédito segue o estado de origem: alíquota interna no mesmo estado, 7% ou 12% entre estados, 4% para importados.</p><button type="button" class="btn ghost" id="reset">Restaurar exemplo</button></div>
+      </section>
+    </div>
+
+    <section class="panel result" aria-live="polite">
+      <h2 id="res-titulo">Demonstrativo</h2>
+      <div id="veredito"></div>
+      <div class="scroll" id="tabela"></div>
+      <p class="hint" id="formula"></p>
+    </section>
+  </div>
+
+  <footer>Simulação gerencial. As alíquotas internas por estado são as gerais de 2026 (RJ já com 2% de FECP) e podem ser ajustadas no campo de ICMS; produtos com alíquota específica ou fundo de pobreza precisam de ajuste manual.CBS e IBS são calculados por fora, sobre o preço sem ICMS e sem PIS/COFINS, e o crédito na compra supõe fornecedor no regime regular com as mesmas alíquotas; as alíquotas de 2027 em diante são estimativas. Os anos de 2029 a 2032, em que o ICMS cai 10% ao ano, podem ser simulados editando os campos. Não inclui substituição tributária, DIFAL, IPI, Imposto Seletivo nem IRPJ/CSLL, e aplica PIS/COFINS sobre o preço cheio, sem excluir o ICMS da base. Confirme alíquotas e créditos com a contabilidade antes de fechar a tabela de preços.</footer>
+</div>
+
+<script>
+(function(){
+  var H='71ac65bdbb6cc0d4c141813a9465435c702a7f53dc79fdb7df60bba5250394d0',GK='formacao-preco-acesso';
+  var gate=document.getElementById('gate'),app=document.getElementById('app'),erro=document.getElementById('gate-erro');
+  function abrir(){gate.hidden=true;app.hidden=false;}
+  try{if(sessionStorage.getItem(GK)===H)abrir();}catch(e){}
+  if(!gate.hidden)document.getElementById('senha').focus();
+  function hash(s){
+    return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){
+      return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');});
+  }
+  document.getElementById('gate-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    var campo=document.getElementById('senha');
+    hash(campo.value.trim()).then(function(h){
+      if(h===H){try{sessionStorage.setItem(GK,H);}catch(e){}erro.textContent='';abrir();}
+      else{erro.textContent='Senha incorreta. Confira e tente de novo.';campo.select();}
+    }).catch(function(){erro.textContent='Não foi possível verificar a senha neste navegador.';});
+  });
+})();
+(function(){
+  var KEY='formacao-preco-v2';
+  var UF={AC:19,AL:20.5,AP:18,AM:20,BA:20.5,CE:20,DF:20,ES:17,GO:19,MA:23,MT:17,MS:17,MG:18,PA:19,PB:20,PR:19.5,PE:20.5,PI:22.5,RJ:22,RN:20,RS:17,RO:19.5,RR:20,SC:17,SP:18,SE:19,TO:20};
+  var SUL_SE=['SP','RJ','MG','PR','SC','RS'];
+  function inter(orig,dest){return SUL_SE.indexOf(orig)>=0&&SUL_SE.indexOf(dest)<0?7:12;}
+  function ufOpts(sel){return Object.keys(UF).sort().map(function(u){return '<option value="'+u+'"'+(u===sel?' selected':'')+'>'+u+'</option>';}).join('');}
+  function exemplo(){return {produto:'Produto exemplo',modo:'formar',regime:'icms',uf:'SP',cenario:'2026',icms:18,pis:0,pisCred:0,cbs:0.9,ibs:0.1,desp:0,margem:20,preco:4500,seq:2,
+    forn:[{id:1,nome:'Compra SP',uf:'SP',compra:3361,cred:'auto',frete:0},{id:2,nome:'Compra SC',uf:'SC',compra:2819,cred:'imp',frete:0}]};}
+  var S=exemplo();
+  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&Array.isArray(o.forn))S=Object.assign(exemplo(),o);}}catch(e){}
+  function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+  var REG={
+    icms:{pis:0,pisCred:0,nota:'Somente ICMS: ignora PIS/COFINS, como na tabela original.'},
+    presumido:{pis:3.65,pisCred:0,nota:'Lucro Presumido: PIS/COFINS cumulativo de 3,65% na venda, sem crédito na compra.'},
+    real:{pis:9.25,pisCred:9.25,nota:'Lucro Real: PIS/COFINS não cumulativo de 9,25% na venda, com crédito de 9,25% na compra.'},
+    simples:{pis:6,pisCred:0,nota:'Simples Nacional: sem crédito de ICMS nas compras, e CBS e IBS ficam dentro do DAS. Troque os 6% pela alíquota efetiva do seu DAS.'}
+  };
+  var CEN={
+    nao:{cbs:0,ibs:0,nota:'CBS e IBS fora da conta.'},
+    '2026':{cbs:0.9,ibs:0.1,nota:'2026 é ano de teste: CBS de 0,9% e IBS de 0,1% aparecem na nota, mas são compensados com PIS/COFINS e não mudam o lucro.'},
+    '2027':{cbs:8.7,ibs:0.1,nota:'2027–2028: CBS cheia (estimada em 8,8%, menos 0,1 ponto) e IBS de 0,1%. PIS e COFINS deixam de existir.'},
+    '2033':{cbs:8.8,ibs:17.7,nota:'2033: CBS e IBS plenos, com alíquotas de referência estimadas, ainda não fixadas pelo Senado. ICMS e PIS/COFINS deixam de existir.'}
+  };
+  function aplicar(){
+    var r=REG[S.regime],c=CEN[S.cenario],simples=S.regime==='simples',novo=S.cenario==='2027'||S.cenario==='2033';
+    S.icms=(simples||S.cenario==='2033')?0:UF[S.uf];
+    S.pis=(novo&&!simples)?0:r.pis;S.pisCred=(novo&&!simples)?0:r.pisCred;
+    S.cbs=simples?0:c.cbs;S.ibs=simples?0:c.ibs;
+  }
+  var $=function(id){return document.getElementById(id);};
+  function num(v){
+    v=String(v==null?'':v).trim().replace(/[R$\s%]/g,'');
+    if(v.indexOf(',')>=0)v=v.replace(/\./g,'').replace(',','.');
+    else if(/^\d{1,3}(\.\d{3})+$/.test(v))v=v.replace(/\./g,'');
+    var n=parseFloat(v);return isFinite(n)?n:0;
+  }
+  function brl(n){return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function pct(n){return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';}
+  function pin(n){return n.toLocaleString('pt-BR',{maximumFractionDigits:2});}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function show(el,t){el.value=t==='money'?brl(S_get(el)):t==='pct'?pin(S_get(el)):S_get(el);}
+  function S_get(el){
+    if(el.dataset.f){var f=S.forn.filter(function(x){return String(x.id)===el.dataset.f;})[0];return f?f[el.dataset.k]:'';}
+    return S[el.dataset.k];
+  }
+  function S_set(el,v){
+    if(el.dataset.f){var f=S.forn.filter(function(x){return String(x.id)===el.dataset.f;})[0];if(f)f[el.dataset.k]=v;}
+    else S[el.dataset.k]=v;
+  }
+
+  function calc(f){
+    var semCred=S.regime==='simples'||f.cred==='0';
+    var tI=S.icms/100,tP=S.pis/100,tD=S.desp/100;
+    var rc=(S.cbs+S.ibs)/100,info=S.cenario==='2026',efet=!info&&rc>0;
+    var nota=S.icms===0?0:f.uf===S.uf?S.icms:f.cred==='imp'?4:inter(f.uf,S.uf);
+    var aliq=semCred?0:nota;
+    var credI=f.compra*aliq/100;
+    var credP=f.compra*S.pisCred/100;
+    var kc=rc*(1-nota/100);
+    var credC=efet&&!semCred?f.compra*kc/(1+kc):0;
+    var custo=f.compra+f.frete;
+    var liquido=custo-credI-credP-credC;
+    var den=1-tI-tP-tD-S.margem/100;
+    var k=efet?rc*(1-tI-tP):0;
+    var preco=S.modo==='formar'?(den>0?liquido/den:NaN):S.preco/(1+k);
+    var deb=preco*tI,icmsRec=deb-credI,pisRec=preco*tP-credP,desp=preco*tD;
+    var debC=preco*k,infoC=info?preco*rc*(1-tI-tP):0;
+    var lucro=preco-custo-icmsRec-pisRec-desp+credC;
+    return {f:f,aliq:aliq,credI:credI,credP:credP,preco:preco,deb:deb,icmsRec:icmsRec,pisRec:pisRec,desp:desp,lucro:lucro,
+      efet:efet,credC:credC,debC:debC,infoC:infoC,final:preco+debC,
+      carga:preco?icmsRec/preco*100:0,margem:preco?lucro/preco*100:0};
+  }
+
+  function renderForns(){
+    $('forns').innerHTML=S.forn.map(function(f){
+      var p='f'+f.id+'-';
+      function opt(v,t){return '<option value="'+v+'"'+(String(f.cred)===v?' selected':'')+'>'+t+'</option>';}
+      return '<div class="forn">'+
+        '<div class="field"><label for="'+p+'nome">Fornecedor</label><input id="'+p+'nome" type="text" data-f="'+f.id+'" data-k="nome" value="'+esc(f.nome)+'" autocomplete="off"></div>'+
+        '<div class="field"><label for="'+p+'compra">Preço de compra (R$)</label><input id="'+p+'compra" class="num" data-f="'+f.id+'" data-k="compra" data-t="money" inputmode="decimal" value="'+brl(f.compra)+'"></div>'+
+        '<div class="field"><label for="'+p+'uf">Estado de origem</label><select id="'+p+'uf" data-f="'+f.id+'" data-k="uf">'+ufOpts(f.uf)+'</select></div>'+
+        '<div class="field"><label for="'+p+'cred">Crédito na compra</label><select id="'+p+'cred" data-f="'+f.id+'" data-k="cred">'+
+          opt('auto','Automático pelo estado')+opt('imp','Produto importado (4%)')+opt('0','Sem crédito')+'</select></div>'+
+        '<div class="field"><label for="'+p+'frete">Frete e outros custos (R$)</label><input id="'+p+'frete" class="num" data-f="'+f.id+'" data-k="frete" data-t="money" inputmode="decimal" value="'+brl(f.frete)+'"></div>'+
+        '<div class="field"><button type="button" class="btn ghost" data-del="'+f.id+'">Remover</button></div>'+
+      '</div>';
+    }).join('');
+  }
+
+  function render(){
+    var formar=S.modo==='formar';
+    $('modo-formar').setAttribute('aria-pressed',formar);
+    $('modo-testar').setAttribute('aria-pressed',!formar);
+    $('box-margem').hidden=!formar; $('box-preco').hidden=formar;
+    $('regime-nota').textContent=REG[S.regime].nota+(S.regime==='simples'?'':' '+CEN[S.cenario].nota);
+    $('lbl-pis').textContent=S.regime==='simples'?'DAS sobre a venda (%)':'PIS/COFINS na venda (%)';
+    $('res-titulo').textContent='Demonstrativo'+(S.produto?' · '+S.produto:'');
+    var V=$('veredito'),T=$('tabela'),F=$('formula');
+    if(!S.forn.length){V.innerHTML='<div class="alert">Adicione pelo menos um fornecedor para calcular.</div>';T.innerHTML='';F.textContent='';return;}
+    var soma=S.icms+S.pis+S.desp+S.margem;
+    if(formar&&soma>=100){V.innerHTML='<div class="alert">Tributos, despesas e margem somam '+pct(soma)+' do preço. A soma precisa ficar abaixo de 100% para existir um preço de venda.</div>';T.innerHTML='';F.textContent='';return;}
+    var R=S.forn.map(calc);
+    var best=0;
+    R.forEach(function(r,i){if(formar?r.final<R[best].final:r.lucro>R[best].lucro)best=i;});
+    var b=R[best],outros=R.filter(function(_,i){return i!==best;});
+    var seg=outros.slice().sort(function(a,c){return formar?a.final-c.final:c.lucro-a.lucro;})[0];
+    var h;
+    if(formar){
+      h='<p class="big">Comprando de '+esc(b.f.nome)+', venda a <b>R$ '+brl(b.final)+'</b></p>';
+      if(seg)h+='<p>São R$ '+brl(seg.final-b.final)+' a menos que com '+esc(seg.f.nome)+', mantendo a margem de '+pct(S.margem)+'.'+(b.efet?' O preço já inclui CBS e IBS.':'')+'</p>';
+      else h+='<p>Esse preço garante margem bruta de '+pct(S.margem)+'.</p>';
+    }else{
+      h='<p class="big">Comprando de '+esc(b.f.nome)+', sobram <b>R$ '+brl(b.lucro)+'</b> por unidade</p>';
+      if(seg)h+='<p>São R$ '+brl(b.lucro-seg.lucro)+' a mais que com '+esc(seg.f.nome)+', vendendo a R$ '+brl(S.preco)+'. Margem de '+pct(b.margem)+'.</p>';
+      else h+='<p>Margem bruta de '+pct(b.margem)+' vendendo a R$ '+brl(S.preco)+'.</p>';
+    }
+    V.innerHTML='<div class="verdict">'+h+'</div>';
+
+    function linha(rot,fn,cls){
+      return '<tr class="'+(cls||'')+'"><td>'+rot+'</td>'+R.map(function(r,i){var v=fn(r);
+        return '<td class="'+(i===best&&R.length>1?'best':'')+(typeof v==='number'&&v<0?' neg':'')+'">'+(typeof v==='number'?brl(v):v)+'</td>';}).join('')+'</tr>';
+    }
+    var temPis=S.pis>0||S.pisCred>0,temFrete=S.forn.some(function(f){return f.frete>0;});
+    var t='<table><thead><tr><th></th>'+R.map(function(r,i){return '<th class="'+(i===best&&R.length>1?'best':'')+'">'+(i===best&&R.length>1?'<span class="pill">Melhor opção</span><br>':'')+esc(r.f.nome)+'</th>';}).join('')+'</tr></thead><tbody>';
+    var efet=R[0].efet;
+    t+=linha(efet?'Preço sem CBS/IBS':'Preço de venda',function(r){return r.preco;},formar&&!efet?'strong':'');
+    if(S.icms>0){
+      t+=linha('Débito de ICMS ('+pin(S.icms)+'%)',function(r){return r.deb;},'sub');
+      t+=linha('(−) Crédito de ICMS da compra',function(r){return brl(r.credI)+' <span style="color:var(--muted)">('+pin(r.aliq)+'%)</span>';},'sub');
+      t+=linha('ICMS a recolher',function(r){return r.icmsRec;},'strong');
+      t+=linha('Carga na guia sobre a venda',function(r){return pct(r.carga);},'sub');
+    }
+    if(temPis)t+=linha(S.regime==='simples'?'DAS sobre a venda':'PIS/COFINS a recolher',function(r){return r.pisRec;},'sub');
+    if(S.desp>0)t+=linha('Despesas variáveis ('+pin(S.desp)+'%)',function(r){return r.desp;},'sub');
+    if(efet){
+      t+=linha('(+) CBS '+pin(S.cbs)+'% e IBS '+pin(S.ibs)+'% na venda',function(r){return r.debC;},'sub');
+      t+=linha('(−) Crédito de CBS/IBS da compra',function(r){return r.credC;},'sub');
+      t+=linha('CBS/IBS a recolher',function(r){return r.debC-r.credC;},'strong');
+      t+=linha('Preço final ao cliente',function(r){return r.final;},'strong');
+    }else if(R[0].infoC>0){
+      t+=linha('CBS e IBS destacados na nota ('+pin(S.cbs+S.ibs)+'%), sem efeito no lucro',function(r){return r.infoC;},'sub');
+    }
+    t+='<tr class="gap"><td colspan="'+(R.length+1)+'"></td></tr>';
+    t+=linha('Preço de compra',function(r){return r.f.compra;},'sub');
+    if(temFrete)t+=linha('Frete e outros custos',function(r){return r.f.frete;},'sub');
+    t+=linha('Lucro bruto',function(r){return r.lucro;},'strong');
+    t+=linha('Margem bruta',function(r){return pct(r.margem);},formar?'':'strong');
+    T.innerHTML=t+'</tbody></table>';
+    F.innerHTML=formar
+      ?'Preço = (compra + frete − créditos) ÷ (1 − '+pin(S.icms+S.pis+S.desp)+'% de tributos e despesas − '+pin(S.margem)+'% de margem)'+(efet?', mais CBS e IBS cobrados por fora':'')
+      :'Lucro bruto = venda − compra − frete − tributos a recolher − despesas variáveis';
+  }
+
+  function preencher(){
+    Array.prototype.forEach.call(document.querySelectorAll('[data-k]:not([data-f])'),function(el){show(el,el.dataset.t);});
+    $('regime').value=S.regime;
+    $('uf').innerHTML=ufOpts(S.uf);
+    $('cenario').value=S.cenario;
+  }
+
+  document.addEventListener('input',function(e){
+    var el=e.target;if(!el.dataset||!el.dataset.k)return;
+    S_set(el,(el.dataset.t||el.dataset.k==='compra'||el.dataset.k==='frete')&&el.tagName==='INPUT'&&el.classList.contains('num')?Math.max(0,num(el.value)):el.value);
+    salvar();render();
+  });
+  document.addEventListener('focusout',function(e){
+    var el=e.target;if(el.dataset&&el.dataset.k&&el.dataset.t)show(el,el.dataset.t);
+  });
+  $('regime').addEventListener('change',function(){
+    S.regime=this.value;aplicar();
+    preencher();salvar();render();
+  });
+  $('cenario').addEventListener('change',function(){
+    S.cenario=this.value;aplicar();
+    preencher();salvar();render();
+  });
+  $('uf').addEventListener('change',function(){
+    S.uf=this.value;if(S.regime!=='simples'&&S.cenario!=='2033')S.icms=UF[S.uf];
+    preencher();salvar();render();
+  });
+  document.querySelector('.seg').addEventListener('click',function(e){
+    var m=e.target.dataset.modo;if(!m)return;S.modo=m;salvar();render();
+  });
+  $('add').addEventListener('click',function(){
+    S.seq=(S.seq||S.forn.length)+1;
+    S.forn.push({id:S.seq,nome:'Fornecedor '+(S.forn.length+1),uf:S.uf,compra:0,cred:'auto',frete:0});
+    renderForns();salvar();render();
+    var n=$('f'+S.seq+'-nome');if(n){n.focus();n.select();}
+  });
+  $('forns').addEventListener('click',function(e){
+    var d=e.target.dataset.del;if(!d)return;
+    S.forn=S.forn.filter(function(f){return String(f.id)!==d;});
+    renderForns();salvar();render();
+  });
+  $('reset').addEventListener('click',function(){S=exemplo();preencher();renderForns();salvar();render();});
+
+  preencher();renderForns();render();
+})();
+</script>
+
+</body>
+</html>
